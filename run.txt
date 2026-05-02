@@ -1,0 +1,100 @@
+import pygame
+import random
+import sys
+
+# 1. Initialize Pygame
+pygame.init()
+
+# 2. Game Settings
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+PLAYER_SIZE = 50
+ENEMY_SIZE = 50
+PLAYER_COLOR = (0, 255, 0)  # Green
+ENEMY_COLOR = (255, 0, 0)   # Red
+BG_COLOR = (0, 0, 0)        # Black
+
+# 3. Create the Window
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Dodge the Red Blocks!")
+
+# 4. Positions & Movement
+player_pos = [SCREEN_WIDTH // 2, SCREEN_HEIGHT - 2 * PLAYER_SIZE]
+enemy_pos = [random.randint(0, SCREEN_WIDTH - ENEMY_SIZE), 0]
+enemy_list = [enemy_pos]
+
+SPEED = 10
+clock = pygame.time.Clock()
+score = 0
+
+def drop_enemies(enemy_list):
+    """Adds a new enemy randomly at the top"""
+    delay = random.random()
+    if len(enemy_list) < 10 and delay < 0.1:
+        x_pos = random.randint(0, SCREEN_WIDTH - ENEMY_SIZE)
+        y_pos = 0
+        enemy_list.append([x_pos, y_pos])
+
+def draw_enemies(enemy_list):
+    """Draws all enemies in the list"""
+    for enemy_pos in enemy_list:
+        pygame.draw.rect(screen, ENEMY_COLOR, (enemy_pos[0], enemy_pos[1], ENEMY_SIZE, ENEMY_SIZE))
+
+def update_enemy_positions(enemy_list, score):
+    """Moves enemies down and updates score"""
+    for idx, enemy_pos in enumerate(enemy_list):
+        if enemy_pos[1] >= 0 and enemy_pos[1] < SCREEN_HEIGHT:
+            enemy_pos[1] += SPEED
+        else:
+            enemy_list.pop(idx)
+            score += 1
+    return score
+
+def collision_check(enemy_list, player_pos):
+    """Checks if any enemy hit the player"""
+    for enemy_pos in enemy_list:
+        if detect_collision(player_pos, enemy_pos):
+            return True
+    return False
+
+def detect_collision(player_pos, enemy_pos):
+    p_x, p_y = player_pos
+    e_x, e_y = enemy_pos
+
+    if (e_x >= p_x and e_x < (p_x + PLAYER_SIZE)) or (p_x >= e_x and p_x < (e_x + ENEMY_SIZE)):
+        if (e_y >= p_y and e_y < (p_y + PLAYER_SIZE)) or (p_y >= e_y and p_y < (e_y + ENEMY_SIZE)):
+            return True
+    return False
+
+# 5. Main Game Loop
+game_over = False
+while not game_over:
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            sys.exit()
+
+    # Movement Logic
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT] and player_pos[0] > 0:
+        player_pos[0] -= 10
+    if keys[pygame.K_RIGHT] and player_pos[0] < SCREEN_WIDTH - PLAYER_SIZE:
+        player_pos[0] += 10
+
+    # Refresh Screen
+    screen.fill(BG_COLOR)
+
+    # Logic Updates
+    drop_enemies(enemy_list)
+    score = update_enemy_positions(enemy_list, score)
+    
+    if collision_check(enemy_list, player_pos):
+        print(f"Game Over! Final Score: {score}")
+        game_over = True
+
+    # Drawing
+    draw_enemies(enemy_list)
+    pygame.draw.rect(screen, PLAYER_COLOR, (player_pos[0], player_pos[1], PLAYER_SIZE, PLAYER_SIZE))
+
+    clock.tick(30) # Frames per second
+    pygame.display.update()
